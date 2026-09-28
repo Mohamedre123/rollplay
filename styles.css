@@ -54,3 +54,10 @@ footer img { transition:transform .5s ease; } footer:hover img { transform:scale
 .pointer-orb { position:fixed; z-index:100; width:30px; height:30px; border:1px solid #d89d25aa; border-radius:50%; background:#d89d2515; pointer-events:none; transition:transform .14s ease-out, width .25s ease, height .25s ease; mix-blend-mode:multiply; }
 @media (hover:none) { .hero-photo { transform:scale(1.025); } .deck-area:active { transform:translateY(-5px) scale(.99); } .challenge-card:hover { transform:none; } .challenge-card:active { transform:scale(.99); } .button:active { box-shadow:0 5px 14px #510a1d30; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
+/* Branded page transition */
+.page-transition { position:fixed; z-index:999; inset:0; pointer-events:none; background:linear-gradient(135deg, #570710 0%, #8b101c 52%, #d89d25 140%); clip-path:circle(0% at 100% 0%); transition:clip-path .62s cubic-bezier(.7,0,.25,1); }
+.page-transition::before { content:'EL MUNDO HISPANO'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); color:#f9dfae; font:600 clamp(.75rem,2vw,1.15rem) 'DM Sans',sans-serif; letter-spacing:.45em; white-space:nowrap; opacity:0; transition:opacity .22s ease .2s; }
+.page-transition.is-leaving { clip-path:circle(150% at 100% 0%); pointer-events:auto; }
+.page-transition.is-leaving::before { opacity:.85; }
+.page-transition.is-entering { clip-path:circle(150% at 0% 100%); }
+@media (max-width:680px) { .page-transition::before { letter-spacing:.28em; } }

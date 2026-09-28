@@ -88,3 +88,23 @@ if (!reduceMotion) {
     });
   }
 }
+// Branded transition between the A1.1 and A1.2 pages.
+if (!reduceMotion) {
+  const transition = document.createElement('div');
+  transition.className = 'page-transition is-entering';
+  transition.setAttribute('aria-hidden', 'true');
+  document.body.append(transition);
+  requestAnimationFrame(() => transition.classList.remove('is-entering'));
+
+  document.querySelectorAll('a[href]').forEach((link) => {
+    const href = link.getAttribute('href');
+    const isPageLink = href && !href.startsWith('#') && !link.target && !link.hasAttribute('download');
+    if (!isPageLink) return;
+    link.addEventListener('click', (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      transition.classList.add('is-leaving');
+      setTimeout(() => { window.location.href = href; }, 560);
+    });
+  });
+}
