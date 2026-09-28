@@ -8,3 +8,49 @@
 .challenge-card.is-selected { animation: card-selected .44s cubic-bezier(.2,.75,.22,1.2); }
 @keyframes card-swap { 0% { opacity:.2; transform:translateX(16px) scale(.985); } 100% { opacity:1; transform:none; } }
 @keyframes card-selected { 0% { opacity:.35; transform:translateY(12px) scale(.98); } 65% { transform:translateY(-4px) scale(1.012); } 100% { opacity:1; transform:none; } }
+/* Site-wide motion system */
+body { overflow-x: hidden; }
+.site-header { position: relative; z-index: 10; transition: box-shadow .35s ease, background-color .35s ease; }
+.site-header:hover { box-shadow: 0 8px 28px #5b171313; }
+.brand, .level-link, .button, .deck { -webkit-tap-highlight-color: transparent; }
+.brand { transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.brand:hover { transform: rotate(-2deg) scale(1.04); }
+.level-link { transition: color .25s ease, transform .25s ease, border-color .25s ease; }
+.level-link:hover { color: var(--gold); border-color: var(--gold); transform: translateX(4px); }
+.hero { isolation: isolate; }
+.hero::after { content:''; position:absolute; z-index:0; width:28rem; height:28rem; border-radius:50%; background:radial-gradient(circle, #e7b64c38 0, #d59a2230 22%, transparent 68%); right:-10rem; top:-11rem; pointer-events:none; animation: hero-glow 8s ease-in-out infinite; }
+.hero-photo { z-index:0; transform: translate(var(--mx, 0px), var(--my, 0px)) scale(1.035); transition: transform .8s cubic-bezier(.2,.75,.25,1); }
+.hero-content { z-index:1; }
+.hero-content .eyebrow { animation: eyebrow-in .85s .1s both; }
+.hero-content h1 { animation: hero-title .85s .18s both; }
+.hero-content .intro { animation: hero-title .85s .28s both; }
+.hero-content .button { animation: hero-title .85s .38s both; }
+@keyframes hero-glow { 0%,100% { transform:translate3d(0,0,0) scale(.92); opacity:.55; } 50% { transform:translate3d(-30px,40px,0) scale(1.12); opacity:1; } }
+@keyframes eyebrow-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes hero-title { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+.button { position:relative; overflow:hidden; transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, background-color .25s ease; }
+.button::before { content:''; position:absolute; inset:0; background:linear-gradient(110deg, transparent 20%, #fff8 50%, transparent 80%); transform:translateX(-130%); transition:transform .65s ease; }
+.button:hover { transform:translateY(-4px); box-shadow:0 11px 24px #510a1d38; }
+.button:hover::before { transform:translateX(130%); }
+.button:active, .deck:active { transform:translateY(1px) scale(.98); }
+.game-section { position:relative; overflow:hidden; }
+.game-section::after { content:''; position:absolute; width:26rem; height:26rem; right:-14rem; bottom:-16rem; border:1px solid #d89d254d; border-radius:50%; box-shadow:0 0 0 34px #d89d250c, 0 0 0 68px #d89d2507; pointer-events:none; animation: orbit 13s linear infinite; }
+@keyframes orbit { to { transform:rotate(360deg); } }
+.deck-area { transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+.deck-area:hover { transform:translateY(-7px); }
+.deck { transition:transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, filter .28s ease; }
+.deck:hover { transform:rotate(-2deg) translateY(-8px); box-shadow:16px 21px 0 #4e0610,0 27px 42px #4c171856; filter:brightness(1.08); }
+.challenge-card { overflow:hidden; transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+.challenge-card:hover { transform:translateY(-7px); box-shadow:0 27px 55px #6d3e2633; }
+.card-image { transition:transform .7s cubic-bezier(.2,.75,.25,1); }
+.challenge-card:hover .card-image { transform:scale(1.06); }
+.steps > div { transition:transform .3s ease, border-color .3s ease; }
+.steps > div:hover { transform:translateY(-7px); border-color:#e9bc5a; }
+.steps b { display:inline-block; transition:transform .35s ease; }
+.steps > div:hover b { transform:rotate(-12deg) scale(1.16); }
+footer img { transition:transform .5s ease; } footer:hover img { transform:scale(1.07); }
+.has-motion .reveal { opacity:0; transform:translateY(28px); transition:opacity .75s ease var(--reveal-delay, 0ms), transform .75s cubic-bezier(.2,.75,.25,1) var(--reveal-delay, 0ms); }
+.has-motion .reveal.is-visible { opacity:1; transform:none; }
+.pointer-orb { position:fixed; z-index:100; width:30px; height:30px; border:1px solid #d89d25aa; border-radius:50%; background:#d89d2515; pointer-events:none; transition:transform .14s ease-out, width .25s ease, height .25s ease; mix-blend-mode:multiply; }
+@media (hover:none) { .hero-photo { transform:scale(1.025); } .deck-area:active { transform:translateY(-5px) scale(.99); } .challenge-card:hover { transform:none; } .challenge-card:active { transform:scale(.99); } .button:active { box-shadow:0 5px 14px #510a1d30; } }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }

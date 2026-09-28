@@ -55,3 +55,36 @@ function drawChallenge() {
   rollCard();
 }
 drawButton?.addEventListener('click', drawChallenge);
+// Site-wide motion: light, touch-friendly and disabled for users who prefer less motion.
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduceMotion) {
+  document.body.classList.add('has-motion');
+  const revealItems = document.querySelectorAll('.hero-content, .section-heading, .deck-area, .challenge-card, .steps > div, .coming-soon');
+  revealItems.forEach((item, index) => {
+    item.classList.add('reveal');
+    item.style.setProperty('--reveal-delay', `${Math.min(index * 70, 280)}ms`);
+  });
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) entry.target.classList.add('is-visible');
+    });
+  }, { threshold: 0.16 });
+  revealItems.forEach((item) => observer.observe(item));
+
+  const hero = document.querySelector('.hero');
+  hero?.addEventListener('pointermove', (event) => {
+    const box = hero.getBoundingClientRect();
+    hero.style.setProperty('--mx', `${((event.clientX - box.left) / box.width - .5) * 16}px`);
+    hero.style.setProperty('--my', `${((event.clientY - box.top) / box.height - .5) * 16}px`);
+  });
+  hero?.addEventListener('pointerleave', () => { hero.style.setProperty('--mx', '0px'); hero.style.setProperty('--my', '0px'); });
+
+  if (window.matchMedia('(pointer: fine)').matches) {
+    const orb = document.createElement('div');
+    orb.className = 'pointer-orb';
+    document.body.append(orb);
+    window.addEventListener('pointermove', (event) => {
+      orb.style.transform = `translate(${event.clientX - 15}px, ${event.clientY - 15}px)`;
+    });
+  }
+}
