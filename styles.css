@@ -61,3 +61,8 @@ footer img { transition:transform .5s ease; } footer:hover img { transform:scale
 .page-transition.is-leaving::before { opacity:.85; }
 .page-transition.is-entering { clip-path:circle(150% at 0% 100%); }
 @media (max-width:680px) { .page-transition::before { letter-spacing:.28em; } }
+/* Mobile game order and image sizing */
+@media (max-width:680px) {
+  .game-layout .deck-area { order:0; }
+  .challenge-card .card-image { min-height:0; height:54vw; max-height:205px; }
+}

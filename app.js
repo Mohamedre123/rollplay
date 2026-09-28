@@ -1,12 +1,14 @@
 const challenges = [
-  { title: 'PresÃ©ntate', task: 'Mira tu tarjeta de identidad. PresÃ©ntate a tu compaÃ±ero: di tu nombre, tu nacionalidad y la ciudad donde vives.', tip: 'DespuÃ©s, pregunta: Â«Â¿Y tÃº?Â»', image: 'assets/prompt-identity.png' },
-  { title: 'Conoce a tu compaÃ±ero', task: 'Sois dos personas que se conocen por primera vez. Haz tres preguntas para descubrir informaciÃ³n personal de tu compaÃ±ero.', tip: 'Puedes preguntar: nombre, paÃ­s, ciudad o profesiÃ³n.', image: 'assets/prompt-conversation.png' },
-  { title: 'En una cafeterÃ­a', task: 'EstÃ¡s en esta cafeterÃ­a. Pide una bebida y pregunta cuÃ¡nto cuesta. Tu compaÃ±ero es la persona que atiende.', tip: 'Usa: Â«Quieroâ€¦Â», Â«Â¿CuÃ¡nto cuesta?Â» y Â«Por favorÂ».', image: 'assets/prompt-cafe.png' },
-  { title: 'Mi casa', task: 'Observa la habitaciÃ³n. Describe tu casa o tu habitaciÃ³n en tres frases: di quÃ© hay y cÃ³mo es.', tip: 'Usa: Â«Hayâ€¦Â», Â«Es grande/pequeÃ±aÂ» y colores.', image: 'assets/prompt-home.png' },
-  { title: 'Una llamada', task: 'Llama a tu compaÃ±ero para organizar una cita. PropÃ³n un dÃ­a, una hora y un lugar.', tip: 'Usa: Â«Â¿Quedamos elâ€¦?Â» y Â«Â¿A quÃ© hora?Â»', image: 'assets/prompt-call.png' },
-  { title: 'TÃº eliges', task: 'Elige un tema de esta unidad y habla durante 30 segundos. Tu compaÃ±ero escucha y hace una pregunta al final.', tip: 'Respira, piensa y empieza con una frase sencilla.', image: 'assets/prompt-choice.png' },
-  { title: 'Cambio de personaje', task: 'Elegid una situaciÃ³n anterior. Cambiad los papeles y repetid el diÃ¡logo con el nuevo personaje.', tip: 'Intenta usar una frase diferente esta vez.', image: 'assets/prompt-roles.png' }
+  { title: 'PresÃ©ntate', task: 'Mira tu tarjeta de identidad. PresÃ©ntate a tu compaÃ±ero: di tu nombre, tu nacionalidad y la ciudad donde vives.', tip: 'DespuÃ©s, pregunta: Â«Â¿Y tÃº?Â»', image: 'assets/prompt-identity.jpg' },
+  { title: 'Conoce a tu compaÃ±ero', task: 'Sois dos personas que se conocen por primera vez. Haz tres preguntas para descubrir informaciÃ³n personal de tu compaÃ±ero.', tip: 'Puedes preguntar: nombre, paÃ­s, ciudad o profesiÃ³n.', image: 'assets/prompt-conversation.jpg' },
+  { title: 'En una cafeterÃ­a', task: 'EstÃ¡s en esta cafeterÃ­a. Pide una bebida y pregunta cuÃ¡nto cuesta. Tu compaÃ±ero es la persona que atiende.', tip: 'Usa: Â«Quieroâ€¦Â», Â«Â¿CuÃ¡nto cuesta?Â» y Â«Por favorÂ».', image: 'assets/prompt-cafe.jpg' },
+  { title: 'Mi casa', task: 'Observa la habitaciÃ³n. Describe tu casa o tu habitaciÃ³n en tres frases: di quÃ© hay y cÃ³mo es.', tip: 'Usa: Â«Hayâ€¦Â», Â«Es grande/pequeÃ±aÂ» y colores.', image: 'assets/prompt-home.jpg' },
+  { title: 'Una llamada', task: 'Llama a tu compaÃ±ero para organizar una cita. PropÃ³n un dÃ­a, una hora y un lugar.', tip: 'Usa: Â«Â¿Quedamos elâ€¦?Â» y Â«Â¿A quÃ© hora?Â»', image: 'assets/prompt-call.jpg' },
+  { title: 'TÃº eliges', task: 'Elige un tema de esta unidad y habla durante 30 segundos. Tu compaÃ±ero escucha y hace una pregunta al final.', tip: 'Respira, piensa y empieza con una frase sencilla.', image: 'assets/prompt-choice.jpg' },
+  { title: 'Cambio de personaje', task: 'Elegid una situaciÃ³n anterior. Cambiad los papeles y repetid el diÃ¡logo con el nuevo personaje.', tip: 'Intenta usar una frase diferente esta vez.', image: 'assets/prompt-roles.jpg' }
 ];
+
+const preloadedImages = challenges.map(({ image }) => { const preload = new Image(); preload.src = image; return preload; });
 
 let remaining = [...challenges];
 const drawButton = document.querySelector('#drawButton');
