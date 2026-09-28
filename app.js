@@ -94,7 +94,7 @@ if (!reduceMotion) {
   transition.className = 'page-transition is-entering';
   transition.setAttribute('aria-hidden', 'true');
   document.body.append(transition);
-  requestAnimationFrame(() => transition.classList.remove('is-entering'));
+  requestAnimationFrame(() => { requestAnimationFrame(() => transition.classList.remove('is-entering')); });
 
   document.querySelectorAll('a[href]').forEach((link) => {
     const href = link.getAttribute('href');
