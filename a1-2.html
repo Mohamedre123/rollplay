@@ -1,2 +1,87 @@
 <!doctype html>
-<html lang="es"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="theme-color" content="#780d18" /><title>El Mundo Hispano | Role Play A1.2</title><link rel="stylesheet" href="styles.css" /></head><body class="level-page"><header class="site-header"><a class="brand" href="index.html"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /></a><div class="header-copy"><span>Práctica interactiva</span><strong>ROLE PLAY</strong></div><a class="level-link" href="index.html">← A1.1</a></header><main><section class="coming-soon"><p class="eyebrow">Siguiente nivel</p><h1>A1.2</h1><div class="sun">☼</div><h2>Muy pronto</h2><p>Estamos preparando nuevos retos de conversación para este nivel.</p><a class="button" href="index.html">Volver al nivel A1.1</a></section></main><footer><img src="assets/elm-logo.png" alt="El Mundo Hispano" /><p>Una práctica asociada a la plataforma El Mundo Hispano.</p></footer><script src="app.js"></script></body></html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#780d18" />
+    <title>El Mundo Hispano | Role Play A1.2</title>
+    <meta name="description" content="Role Play A1.2: cartas de situaciones para opinar y reaccionar en español." />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="El Mundo Hispano, inicio"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /></a>
+      <div class="header-copy"><span>Práctica interactiva</span><strong>ROLE PLAY</strong></div>
+      <a class="level-link" href="/conversacion">Conversación <span>→</span></a>
+    </header>
+
+    <main>
+      <section class="hero-a12" aria-labelledby="a12-title">
+        <div class="a12-photo" aria-hidden="true"></div>
+        <div class="a12-copy">
+          <p class="eyebrow">Nivel A1.2 · Situaciones</p>
+          <h1 id="a12-title">¿Y tú qué<br /><em>harías?</em></h1>
+          <p class="intro">Quince cartas boca abajo. Elige una, dale la vuelta y reacciona en español: ¿está bien o está mal? ¿Qué haces tú?</p>
+          <a class="button button-light" href="#cartas">Elegir una carta <span>↓</span></a>
+        </div>
+        <div class="a12-fan" aria-hidden="true">
+          <span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span><span class="fan-card"></span>
+        </div>
+      </section>
+
+      <section class="cards-section" id="cartas" aria-labelledby="cards-title">
+        <div class="section-heading"><p class="eyebrow">Nivel A1.2</p><h2 id="cards-title">A1.2 · Cartas de situaciones</h2><p>Toca una carta para darle la vuelta. Lee la situación, mira la escena y responde a la pregunta con tu compañero.</p></div>
+        <div class="cards-toolbar">
+          <p class="cards-count" id="cardsCount" aria-live="polite">15 cartas por descubrir</p>
+          <div class="cards-actions">
+            <button class="button" id="randomCard" type="button">Carta al azar <span>✦</span></button>
+            <button class="button button-ghost" id="shuffleCards" type="button">Barajar <span>↻</span></button>
+          </div>
+        </div>
+        <div class="card-table" id="cardTable"></div>
+      </section>
+
+      <section class="how-it-works"><p class="eyebrow">Cómo jugar</p><div class="steps"><div><b>01</b><h3>Elige una carta</h3><p>Todas empiezan boca abajo.</p></div><div><b>02</b><h3>Lee la situación</h3><p>Toca la imagen para verla entera.</p></div><div><b>03</b><h3>Da tu opinión</h3><p>Explica por qué, en español.</p></div></div></section>
+    </main>
+
+    <div class="card-stage" id="cardStage" hidden role="dialog" aria-modal="true" aria-labelledby="stageSituation">
+      <div class="stage-backdrop"></div>
+      <div class="stage-card">
+        <div class="stage-inner">
+          <div class="stage-face stage-back"><span class="back-small">ROLE PLAY</span><span class="back-main">¿?</span><span class="back-label">A1.2</span></div>
+          <div class="stage-face stage-front">
+            <div class="face-photo" data-zoom-frame role="button" tabindex="0" aria-label="Ver la imagen completa"><img alt="" decoding="async" /><span class="zoom-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></span></div>
+            <div class="face-text">
+              <span class="face-num"></span>
+              <h3 id="stageSituation"></h3>
+              <p class="face-question"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="stage-controls">
+        <button class="button button-light" id="stageNext" type="button">Otra carta <span>✦</span></button>
+      </div>
+      <button class="lightbox-close stage-close" id="stageClose" type="button" aria-label="Cerrar carta"><span></span></button>
+    </div>
+    <footer class="site-footer">
+      <div class="footer-apps">
+        <p class="eyebrow">Recursos recomendados</p>
+        <h2>Sigue practicando fuera de clase</h2>
+        <ul class="app-list">
+          <li><a href="https://play.google.com/store/apps/details?id=com.appmind.radios.es" target="_blank" rel="noopener"><img src="assets/apps/radio.webp" alt="" width="72" height="72" loading="lazy" /><span>Radios Españolas</span></a></li>
+          <li><a href="https://context.reverso.net/traduccion/" target="_blank" rel="noopener"><img src="assets/apps/reverso.webp" alt="" width="72" height="72" loading="lazy" /><span>Reverso Context</span></a></li>
+          <li><a href="https://albalearning.com/" target="_blank" rel="noopener"><img src="assets/apps/alba.webp" alt="" width="72" height="72" loading="lazy" /><span>Albalearning</span></a></li>
+          <li><a href="https://www.wordreference.com/es/" target="_blank" rel="noopener"><img src="assets/apps/wr.webp" alt="" width="72" height="72" loading="lazy" /><span>WordReference</span></a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        <a class="footer-brand" href="/" aria-label="El Mundo Hispano, inicio"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /></a>
+        <p>Una práctica asociada a la plataforma El Mundo Hispano.</p>
+        <a class="instagram-link" href="https://www.instagram.com/elmundohispano_/" target="_blank" rel="noopener" aria-label="Instagram de El Mundo Hispano"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4.2" /><circle class="dot" cx="17.3" cy="6.7" r="1.1" /></svg><span>@elmundohispano_</span></a>
+      </div>
+    </footer>
+    <script src="a1-2.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
