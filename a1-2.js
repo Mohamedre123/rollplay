@@ -47,7 +47,7 @@ function buildCard(item) {
   card.className = 'play-card';
   card.dataset.number = item.number;
   card.setAttribute('aria-label', 'Carta boca abajo');
-  card.innerHTML = `<span class="pc-inner"><span class="pc-face pc-back"><span class="back-small">ROLE PLAY</span><span class="back-main">¿?</span></span><span class="pc-face pc-front"><img alt="" loading="lazy" decoding="async" /><span class="pc-num">${item.number}</span><span class="pc-check" aria-hidden="true">✓</span></span></span>`;
+  card.innerHTML = `<span class="pc-inner"><span class="pc-face pc-back"><span class="back-small">ROLE PLAY</span><span class="back-main">¿?</span></span><span class="pc-face pc-front"><img alt="" decoding="async" /><span class="pc-num">${item.number}</span><span class="pc-check" aria-hidden="true">✓</span></span></span>`;
   card.addEventListener('click', () => openCard(card));
   return card;
 }
@@ -68,10 +68,9 @@ function updateCount() {
 // Warm the image cache once the page is idle so the flip never waits on the network.
 (window.requestIdleCallback || ((fn) => setTimeout(fn, 1200)))(() => situations.forEach(({ image }) => { new Image().src = image; }));
 
-function loadImage(src) {
-  const img = new Image();
-  img.src = src;
-  return Promise.race([img.decode().catch(() => {}), wait(700)]);
+// Decode the new picture on the element itself, so the previous card's image never flashes on screen.
+function settle(img) {
+  return Promise.race([img.decode().catch(() => {}), wait(900)]);
 }
 
 // Where the card should fly from/to; fall back to the bottom of the screen if it is scrolled away.
@@ -101,24 +100,29 @@ async function openCard(card) {
   stage.querySelector('.face-num').textContent = `Situación ${item.number} · 15`;
   stage.querySelector('#stageSituation').textContent = item.situation;
   stage.querySelector('.face-question').textContent = item.question;
-  await loadImage(item.image);
+  await settle(stagePhoto);
 
   const from = cardRect(card);
+  lockScroll('stage-open');
   stage.hidden = false;
-  document.documentElement.classList.add('stage-open');
   card.classList.add('is-lifted');
-  requestAnimationFrame(() => stage.classList.add('is-open'));
+  void stage.offsetWidth;
+  stage.classList.add('is-open');
   if (!cardsReduceMotion) {
     const { x, y, s } = offsetTo(from);
     const mid = (s + 1) / 2 * 1.06;
-    await stageInner.animate([
+    // Pin the starting pose before the first paint so the big card never shows for a frame.
+    stageInner.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotateY(0deg)`;
+    const flight = stageInner.animate([
       { transform: `translate(${x}px, ${y}px) scale(${s}) rotateY(0deg)` },
       { transform: `translate(${x * .35}px, ${y * .35 - 40}px) scale(${mid}) rotateY(95deg)`, offset: .5 },
       { transform: 'translate(0, 0) scale(1) rotateY(180deg)' }
-    ], { duration: 900, easing: cardEasing }).finished;
+    ], { duration: 900, easing: cardEasing });
+    stageInner.style.transform = '';
+    await flight.finished;
   }
-  card.classList.add('is-revealed');
   card.querySelector('.pc-front img').src = item.image;
+  card.classList.add('is-revealed');
   card.setAttribute('aria-label', `Carta ${item.number}: ${item.situation}`);
   updateCount();
   stageClose.focus({ preventScroll: true });
@@ -141,7 +145,7 @@ async function closeCard() {
   }
   activeCard.classList.remove('is-lifted');
   stage.hidden = true;
-  document.documentElement.classList.remove('stage-open');
+  unlockScroll('stage-open');
   activeCard.focus({ preventScroll: true });
   isBusy = false;
 }

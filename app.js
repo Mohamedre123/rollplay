@@ -1,3 +1,59 @@
+// Locking the page hides the scrollbar; pad the body by its width so nothing behind jumps sideways.
+const scrollLocks = ['menu-open', 'stage-open', 'lightbox-open'];
+function lockScroll(name) {
+  const root = document.documentElement;
+  if (!scrollLocks.some((lock) => root.classList.contains(lock))) root.style.setProperty('--scrollbar', `${window.innerWidth - document.documentElement.clientWidth}px`);
+  root.classList.add(name);
+}
+function unlockScroll(name) {
+  document.documentElement.classList.remove(name);
+}
+
+// Mobile side menu, built from the header links so every page stays in sync.
+const siteNav = document.querySelector('.site-nav');
+const menuToggle = document.querySelector('.menu-toggle');
+if (siteNav && menuToggle) {
+  const sideMenu = document.createElement('div');
+  sideMenu.className = 'side-menu';
+  sideMenu.id = 'sideMenu';
+  sideMenu.hidden = true;
+  sideMenu.setAttribute('role', 'dialog');
+  sideMenu.setAttribute('aria-modal', 'true');
+  sideMenu.setAttribute('aria-label', 'Menú de niveles');
+  const items = [...siteNav.querySelectorAll('a')].map((link, index) => {
+    const current = link.getAttribute('aria-current') === 'page' ? ' aria-current="page"' : '';
+    return `<a href="${link.getAttribute('href')}"${current} style="--k:${index}"><span class="menu-num">${index ? String(index).padStart(2, '0') : '⌂'}</span><span class="menu-label"><strong>${link.textContent}</strong><small>${link.dataset.sub || ''}</small></span><b aria-hidden="true">→</b></a>`;
+  }).join('');
+  sideMenu.innerHTML = `<div class="side-backdrop"></div><aside class="side-panel"><div class="side-top"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /><button class="side-close" type="button" aria-label="Cerrar menú"><span></span></button></div><p class="eyebrow">Elige tu nivel</p><nav class="side-links">${items}</nav><a class="side-instagram" href="https://www.instagram.com/elmundohispano_/" target="_blank" rel="noopener">@elmundohispano_</a></aside>`;
+  document.body.append(sideMenu);
+  const closeButton = sideMenu.querySelector('.side-close');
+  let menuTimer = null;
+
+  const openMenu = () => {
+    clearTimeout(menuTimer);
+    sideMenu.hidden = false;
+    lockScroll('menu-open');
+    menuToggle.setAttribute('aria-expanded', 'true');
+    void sideMenu.offsetWidth;
+    sideMenu.classList.add('is-open');
+    closeButton.focus({ preventScroll: true });
+  };
+  const closeMenu = () => {
+    if (sideMenu.hidden) return;
+    sideMenu.classList.remove('is-open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+    unlockScroll('menu-open');
+    menuTimer = setTimeout(() => { sideMenu.hidden = true; }, 420);
+    menuToggle.focus({ preventScroll: true });
+  };
+  menuToggle.addEventListener('click', openMenu);
+  closeButton.addEventListener('click', closeMenu);
+  sideMenu.querySelector('.side-backdrop').addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMenu(); });
+  // Rotating a tablet into the desktop layout should not leave the drawer open.
+  window.matchMedia('(min-width: 761px)').addEventListener('change', (query) => { if (query.matches) closeMenu(); });
+}
+
 // Site-wide motion: light, touch-friendly and disabled for users who prefer less motion.
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (!reduceMotion) {
@@ -86,19 +142,24 @@ if (!reduceMotion) {
     return `translate(${x}px, ${y}px) scale(${scale})`;
   }
 
-  function openLightbox(frame) {
+  let isOpening = false;
+  async function openLightbox(frame) {
     const source = frame.querySelector('img');
-    if (!source?.getAttribute('src') || frame.closest('.is-empty, .is-rolling') || !lightbox.hidden) return;
+    if (!source?.getAttribute('src') || frame.closest('.is-empty, .is-rolling') || !lightbox.hidden || isOpening) return;
+    isOpening = true;
     activeFrame = frame;
     // Reserve the final size before the picture decodes so the zoom animation can measure it.
     lbImage.width = source.naturalWidth || 640;
     lbImage.height = source.naturalHeight || 960;
     lbImage.src = source.currentSrc || source.src;
+    // Wait for the new picture so the previously viewed one never flashes before it.
+    await Promise.race([lbImage.decode().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 900))]);
+    isOpening = false;
     lbImage.alt = source.alt;
     lbCaption.textContent = source.alt;
     lightbox.setAttribute('aria-label', source.alt || 'Imagen');
     lightbox.hidden = false;
-    document.documentElement.classList.add('lightbox-open');
+    lockScroll('lightbox-open');
     frame.classList.add('is-zoomed');
     requestAnimationFrame(() => lightbox.classList.add('is-open'));
     if (!reduceMotion) {
@@ -117,7 +178,7 @@ if (!reduceMotion) {
     const finish = () => {
       lightbox.hidden = true;
       isClosing = false;
-      document.documentElement.classList.remove('lightbox-open');
+      unlockScroll('lightbox-open');
       activeFrame?.classList.remove('is-zoomed');
       activeFrame?.focus({ preventScroll: true });
       activeFrame = null;
