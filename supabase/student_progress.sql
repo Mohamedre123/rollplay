@@ -1,4 +1,4 @@
--- Run this once in Supabase → SQL Editor.
+-- Run in Supabase → SQL Editor. Safe to run again: every statement is idempotent.
 create table if not exists public.student_progress (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -9,8 +9,11 @@ create table if not exists public.student_progress (
   unique (user_id, activity_key)
 );
 alter table public.student_progress enable row level security;
+drop policy if exists "Students read own progress" on public.student_progress;
 create policy "Students read own progress" on public.student_progress for select using (auth.uid() = user_id);
+drop policy if exists "Students add own progress" on public.student_progress;
 create policy "Students add own progress" on public.student_progress for insert with check (auth.uid() = user_id);
+drop policy if exists "Students update own progress" on public.student_progress;
 create policy "Students update own progress" on public.student_progress for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 -- Account lookup table used only by the secure Vercel API to distinguish sign-in from sign-up.
 create table if not exists public.student_profiles (
@@ -20,6 +23,7 @@ create table if not exists public.student_profiles (
   created_at timestamptz not null default now()
 );
 alter table public.student_profiles enable row level security;
+drop policy if exists "Students read own profile" on public.student_profiles;
 create policy "Students read own profile" on public.student_profiles for select using (auth.uid() = id);
 
 create or replace function public.handle_student_profile()

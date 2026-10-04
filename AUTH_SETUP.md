@@ -7,9 +7,10 @@ This project adds a separate `auth.html` page. It does not alter the learning pa
 Add these in Vercel → Project → Settings → Environment Variables for **Production**, **Preview**, and **Development**:
 
 - `SUPABASE_URL`: Project URL from Supabase → Project Settings → API.
-- `SUPABASE_ANON_KEY`: Publishable/anon key from the same screen. This is intentionally returned to the browser; it is safe to expose when Row Level Security is enabled. Never add `service_role` to Vercel or to the browser.
+- `SUPABASE_ANON_KEY`: Publishable/anon key from the same screen. This is intentionally returned to the browser; it is safe to expose when Row Level Security is enabled.
+- `SUPABASE_SERVICE_ROLE_KEY` (optional, server only): the `service_role` / secret key. It is read only by `api/auth-request.js` on Vercel's server to tell "this email is not registered" apart from "already registered". Without it, login still works; students just get Supabase's generic messages.
 
-Redeploy after adding them. The service-role key must never be placed in JavaScript, HTML, or any NEXT_PUBLIC_* variable.
+Redeploy after adding them. The service-role key must never be placed in JavaScript, HTML, or any NEXT_PUBLIC_* variable; a Vercel environment variable read by an `api/` function is the right place for it.
 
 ## Supabase configuration
 
@@ -54,3 +55,13 @@ Do not put the Resend API key in Vercel or any browser file. It lives only insid
 ## Suggested OTP email template
 
 In Supabase → Authentication → Email Templates → Magic Link, use a subject like `Código de acceso · El Mundo Hispano` and a body that prominently contains `{{ .Token }}`. The login screen verifies this exact code and does not use a magic-link click.
+
+## Emails Supabase sends
+
+- New students get the **Confirm signup** template; returning students get the **Magic Link** template. Put `{{ .Token }}` in **both**.
+- Authentication → Providers → Email → **Email OTP Length** must be **6** (the login screen expects 6 digits).
+- Without custom SMTP, Supabase's built-in sender only delivers to members of your Supabase team and only a few emails per hour. Real students will not receive codes until custom SMTP (Resend) is configured.
+
+## Troubleshooting
+
+If the account check is skipped, Vercel → Project → Logs shows `auth-request: account check skipped (...)` with the reason: `student_profiles_table_missing` (run the SQL file), `missing_service_role_key` or `service_role_key_rejected` (check the Vercel variable).
