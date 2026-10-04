@@ -8,7 +8,6 @@ const nameField = document.querySelector('#nameField');
 const otpInput = document.querySelector('#otpCode');
 const sentEmail = document.querySelector('#sentEmail');
 const statusMessage = document.querySelector('#statusMessage');
-const configNotice = document.querySelector('#configNotice');
 const sendButton = document.querySelector('#sendButton');
 const verifyButton = document.querySelector('#verifyButton');
 let mode = 'login';
@@ -34,8 +33,6 @@ async function initAuth() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) window.location.replace('account.html');
   } catch {
-    configNotice.hidden = false;
-    configNotice.textContent = 'خدمة الدخول تحتاج إعداد Supabase أولًا. راجع ملف AUTH_SETUP.md.';
   }
 }
 

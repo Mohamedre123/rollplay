@@ -9,12 +9,33 @@
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'; script.onload = resolve; script.onerror = reject; document.head.append(script);
   });
   const addStyles = () => { if (!document.querySelector('link[href="student.css"]')) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'student.css'; document.head.append(link); } };
+  const applyPageTransition = (link) => {
+    link.addEventListener('click', (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const overlay = document.querySelector('.page-transition');
+      if (!overlay) return;
+      event.preventDefault();
+      overlay.classList.add('is-leaving');
+      setTimeout(() => { window.location.href = link.href; }, 560);
+    });
+  };
   const injectAccountLink = (user) => {
-    const header = document.querySelector('.site-header');
-    if (!header || header.querySelector('.student-account-link')) return;
-    const link = document.createElement('a'); link.className = 'student-account-link'; link.href = user ? '/account' : '/auth';
-    link.innerHTML = user ? '<span class="student-dot"></span><span>Mi cuenta</span>' : '<span>Entrar</span>';
-    header.append(link);
+    const destination = user ? '/account' : '/auth';
+    const label = user ? 'Mi cuenta' : 'Entrar';
+    const nav = document.querySelector('.site-nav');
+    if (nav && !nav.querySelector('.student-account-link')) {
+      const link = document.createElement('a');
+      link.className = 'student-account-link'; link.href = destination;
+      link.innerHTML = user ? '<span class="student-dot"></span>Mi cuenta' : 'Entrar';
+      applyPageTransition(link); nav.append(link);
+    }
+    const sideLinks = document.querySelector('#sideMenu .side-links');
+    if (sideLinks && !sideLinks.querySelector('.student-menu-link')) {
+      const link = document.createElement('a');
+      link.className = 'student-menu-link'; link.href = destination; link.style.setProperty('--k', '4');
+      link.innerHTML = `<span class="menu-num">${user ? '⌾' : '→'}</span><span class="menu-label"><strong>${label}</strong><small>${user ? 'Tu progreso y actividades' : 'Accede con tu correo'}</small></span><b aria-hidden="true">→</b>`;
+      applyPageTransition(link); sideLinks.append(link);
+    }
   };
   async function init() {
     addStyles();
