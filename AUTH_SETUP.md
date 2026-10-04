@@ -1,0 +1,56 @@
+# Passwordless login setup
+
+This project adds a separate `auth.html` page. It does not alter the learning pages.
+
+## Vercel environment variables
+
+Add these in Vercel → Project → Settings → Environment Variables for **Production**, **Preview**, and **Development**:
+
+- `SUPABASE_URL`: Project URL from Supabase → Project Settings → API.
+- `SUPABASE_ANON_KEY`: Publishable/anon key from the same screen. This is intentionally returned to the browser; it is safe to expose when Row Level Security is enabled. Never add `service_role` to Vercel or to the browser.
+
+Redeploy after adding them.
+
+## Supabase configuration
+
+1. Create a project at https://supabase.com/dashboard.
+2. Go to Authentication → Providers → Email. Enable Email; do not enable passwords in this UI.
+3. Go to Authentication → URL Configuration. Set Site URL to `https://YOUR-VERCEL-DOMAIN` and add `https://YOUR-VERCEL-DOMAIN/**` plus your production custom domain to Redirect URLs.
+4. Go to Authentication → Email Templates → Magic Link. Replace the body with a simple code template that uses `{{ .Token }}` (not `{{ .ConfirmationURL }}`). Example subject: `Your El Mundo Hispano verification code`.
+5. Keep the OTP length at six digits (the UI validates six digits).
+
+## Production email delivery (Resend + your domain)
+
+Supabase's default sender is only for testing and rate limited. Use custom SMTP for real students.
+
+1. Create a Resend account at https://resend.com and open Domains → Add Domain.
+2. Prefer a dedicated authentication subdomain, for example `auth.yourdomain.com` with sender `no-reply@auth.yourdomain.com`.
+3. Add **exactly** the SPF and DKIM DNS records displayed by Resend in the DNS provider that hosts your domain (Cloudflare, for example), then verify the domain in Resend. Add a DMARC record for the sending domain as recommended by your DNS/email provider.
+4. In Resend → API Keys, create an SMTP key. Copy its SMTP host, port, username, and password.
+5. In Supabase → Authentication → Settings → SMTP, enable Custom SMTP and enter the Resend settings, sender name `El Mundo Hispano`, and From address `no-reply@auth.yourdomain.com`.
+6. Disable click/open tracking for authentication messages; use a short code-only email with no marketing links.
+7. In Supabase → Authentication → Rate Limits, select a safe OTP send limit for your expected number of students.
+
+Correct SPF, DKIM, DMARC, a verified sending domain, a dedicated auth subdomain, and a simple OTP-only template substantially improve Gmail inbox placement. No provider can truthfully guarantee every message will bypass Spam, because Gmail makes the final placement decision.
+## Student dashboard and progress
+
+1. In Supabase → SQL Editor → New query, paste and run the whole content of `supabase/student_progress.sql`.
+2. The site records the first interaction in A1.1/A1.2 as **started**. Completing the timer in Conversación records it as **completed**. The student sees this in `/account`.
+3. The shared account control is injected by `student.js`; the only change made to Claude's pages is loading this one connector file after their existing scripts.
+
+## Exact Resend SMTP values
+
+In Supabase → Authentication → Settings → SMTP use:
+
+- Host: `smtp.resend.com`
+- Port: `587` (STARTTLS)
+- Username: `resend`
+- Password: the Resend API key you created
+- Sender email: `no-reply@auth.yourdomain.com`
+- Sender name: `El Mundo Hispano`
+
+Do not put the Resend API key in Vercel or any browser file. It lives only inside Supabase's SMTP configuration.
+
+## Suggested OTP email template
+
+In Supabase → Authentication → Email Templates → Magic Link, use a subject like `Código de acceso · El Mundo Hispano` and a body that prominently contains `{{ .Token }}`. The login screen verifies this exact code and does not use a magic-link click.
