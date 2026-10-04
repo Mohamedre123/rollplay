@@ -1,60 +1,35 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#780d18" />
-  <meta name="description" content="تسجيل الدخول إلى El Mundo Hispano" />
-  <title>تسجيل الدخول | El Mundo Hispano</title>
+  <meta name="description" content="Acceso a El Mundo Hispano" />
+  <title>Acceso | El Mundo Hispano</title>
   <link rel="stylesheet" href="auth.css" />
 </head>
 <body>
   <main class="auth-shell">
-    <section class="auth-art" aria-hidden="true">
-      <div class="auth-orb orb-one"></div><div class="auth-orb orb-two"></div>
-      <div class="auth-pattern"></div>
-      <p>EL MUNDO<br><em>HISPANO</em></p>
-      <span>Aprender · Hablar · Conectar</span>
-    </section>
+    <section class="auth-art" aria-hidden="true"><div class="auth-orb orb-one"></div><div class="auth-orb orb-two"></div><div class="auth-pattern"></div><p>EL MUNDO<br><em>HISPANO</em></p><span>Aprender · Hablar · Conectar</span></section>
     <section class="auth-panel" aria-labelledby="auth-title">
-      <div class="auth-top"><a class="auth-logo" href="/" aria-label="العودة إلى El Mundo Hispano"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /></a><a class="auth-home" href="/">العودة للرئيسية <span>←</span></a></div>
+      <div class="auth-top"><a class="auth-logo" href="/" aria-label="Volver a El Mundo Hispano"><img src="assets/elm-logo.png" alt="El Mundo Hispano" /></a><a class="auth-home" href="/">Volver al inicio <span>→</span></a></div>
       <div id="startView">
-        <p class="eyebrow">منصة El Mundo Hispano</p>
-        <h1 id="auth-title">مرحبًا بك</h1>
-        <p class="lead">ادخل إلى تدريباتك بكود آمن يُرسل إلى بريدك الإلكتروني. بدون كلمة مرور.</p>
-        <div class="mode-switch" role="tablist" aria-label="نوع العملية">
-          <button class="mode-button is-active" type="button" data-mode="login" role="tab" aria-selected="true">تسجيل الدخول</button>
-          <button class="mode-button" type="button" data-mode="signup" role="tab" aria-selected="false">إنشاء حساب</button>
-        </div>
+        <p class="eyebrow">Plataforma El Mundo Hispano</p><h1 id="auth-title">Bienvenido/a</h1><p class="lead">Accede a tus prácticas con un código seguro enviado a tu correo. Sin contraseña.</p>
+        <div class="mode-switch" role="tablist" aria-label="Tipo de acceso"><button class="mode-button is-active" type="button" data-mode="login" role="tab" aria-selected="true">Iniciar sesión</button><button class="mode-button" type="button" data-mode="signup" role="tab" aria-selected="false">Crear cuenta</button></div>
         <form id="emailForm" novalidate>
-          <div class="field name-field" id="nameField" hidden>
-            <label for="fullName">الاسم الكامل</label>
-            <input id="fullName" name="name" type="text" autocomplete="name" placeholder="اكتب اسمك" maxlength="80" />
-          </div>
-          <div class="field">
-            <label for="email">البريد الإلكتروني</label>
-            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required dir="ltr" />
-          </div>
-          <button class="primary-button" id="sendButton" type="submit"><span>إرسال كود التأكيد</span><b>←</b></button>
+          <div class="field name-field" id="nameField" hidden><label for="fullName">Nombre completo</label><input id="fullName" name="name" type="text" autocomplete="name" placeholder="Escribe tu nombre" maxlength="80" /></div>
+          <div class="field"><label for="email">Correo electrónico</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required /></div>
+          <button class="primary-button" id="sendButton" type="submit"><span>Enviar código</span><b>→</b></button>
         </form>
-        <p class="privacy">باستمرارك، أنت توافق على استخدام بريدك لتأمين حسابك فقط.</p>
+        <p class="privacy">Al continuar, aceptas usar tu correo únicamente para proteger tu cuenta.</p>
       </div>
       <div id="otpView" hidden>
-        <button class="back-button" id="changeEmail" type="button">→ تغيير البريد الإلكتروني</button>
-        <p class="eyebrow">تحقق من بريدك</p>
-        <h1>أدخل الرمز</h1>
-        <p class="lead">أرسلنا كودًا من 6 أرقام إلى <strong id="sentEmail" dir="ltr"></strong>.</p>
-        <form id="otpForm" novalidate>
-          <label class="sr-only" for="otpCode">كود التأكيد</label>
-          <input id="otpCode" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" dir="ltr" required />
-          <button class="primary-button" id="verifyButton" type="submit"><span>تأكيد والدخول</span><b>←</b></button>
-        </form>
-        <div class="resend-row"><span>لم يصلك الكود؟</span><button id="resendCode" type="button">إرسال كود جديد</button></div>
+        <button class="back-button" id="changeEmail" type="button">← Cambiar correo</button><p class="eyebrow">Revisa tu correo</p><h1>Introduce el código</h1><p class="lead">Hemos enviado un código de 6 dígitos a <strong id="sentEmail"></strong>.</p>
+        <form id="otpForm" novalidate><label class="sr-only" for="otpCode">Código de verificación</label><input id="otpCode" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required /><button class="primary-button" id="verifyButton" type="submit"><span>Confirmar y entrar</span><b>→</b></button></form>
+        <div class="resend-row"><span>¿No recibiste el código?</span><button id="resendCode" type="button">Enviar otro código</button></div>
       </div>
       <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
     </section>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="auth.js" defer></script>
-</body>
-</html>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script><script src="auth.js" defer></script>
+</body></html>
