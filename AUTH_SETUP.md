@@ -9,7 +9,7 @@ Add these in Vercel → Project → Settings → Environment Variables for **Pro
 - `SUPABASE_URL`: Project URL from Supabase → Project Settings → API.
 - `SUPABASE_ANON_KEY`: Publishable/anon key from the same screen. This is intentionally returned to the browser; it is safe to expose when Row Level Security is enabled. Never add `service_role` to Vercel or to the browser.
 
-Redeploy after adding them.
+Redeploy after adding them. The service-role key must never be placed in JavaScript, HTML, or any NEXT_PUBLIC_* variable.
 
 ## Supabase configuration
 
@@ -49,7 +49,7 @@ In Supabase → Authentication → Settings → SMTP use:
 - Sender email: `no-reply@auth.yourdomain.com`
 - Sender name: `El Mundo Hispano`
 
-Do not put the Resend API key in Vercel or any browser file. It lives only inside Supabase's SMTP configuration.
+Do not put the Resend API key in Vercel or any browser file. It lives only inside Supabase's SMTP configuration. **There are no Resend variables to add in Vercel** for this SMTP-based setup.
 
 ## Suggested OTP email template
 

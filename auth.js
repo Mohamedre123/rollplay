@@ -41,6 +41,12 @@ async function sendCode() {
   currentEmail = emailInput.value.trim().toLowerCase();
   const fullName = nameInput.value.trim();
   if (!emailInput.checkValidity() || (mode === 'signup' && !fullName)) { emailForm.reportValidity(); return; }
+  setBusy(sendButton, true, 'جارٍ التحقق…');
+  try {
+    const checkResponse = await fetch('/api/auth-request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: currentEmail, mode }) });
+    const check = await checkResponse.json();
+    if (!checkResponse.ok) { setBusy(sendButton, false, ''); setStatus(check.message || 'تعذر التحقق من الحساب.'); return; }
+  } catch { setBusy(sendButton, false, ''); setStatus('تعذر الاتصال بخدمة الحسابات. حاول مرة أخرى.'); return; }
   setBusy(sendButton, true, 'جارٍ إرسال الكود…');
   const options = { shouldCreateUser: mode === 'signup' };
   if (mode === 'signup') options.data = { full_name: fullName };
@@ -68,3 +74,15 @@ document.querySelector('#resendCode').addEventListener('click', sendCode);
 otpInput.addEventListener('input', () => { otpInput.value = otpInput.value.replace(/\D/g, ''); if (otpInput.value.length === 6) otpForm.requestSubmit(); });
 [sendButton, verifyButton].forEach((button) => { button.dataset.label = button.querySelector('span').textContent; });
 initAuth();
+// Reuse the site curtain when leaving the standalone auth page.
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const transition = document.createElement('div');
+  transition.className = 'auth-page-transition is-entering';
+  transition.setAttribute('aria-hidden', 'true');
+  document.body.append(transition);
+  requestAnimationFrame(() => requestAnimationFrame(() => transition.classList.remove('is-entering')));
+  document.querySelectorAll('a[href="/"]').forEach((link) => link.addEventListener('click', (event) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault(); transition.classList.add('is-leaving'); setTimeout(() => { window.location.href = '/'; }, 560);
+  }));
+}
