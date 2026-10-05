@@ -25,6 +25,7 @@ async function loadAccount() {
 
     document.querySelector('#signOut').addEventListener('click', async () => {
       await client.auth.signOut();
+      await fetch('/api/session', { method: 'DELETE' }).catch(() => {});
       sessionStorage.clear();
       window.location.href = '/auth';
     });

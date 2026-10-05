@@ -12,14 +12,14 @@ let supabaseClient;
 function setStatus(message = '', success = false) { statusMessage.textContent = message; statusMessage.classList.toggle('is-success', success); }
 function setBusy(busy, text) { loginButton.disabled = busy; loginButton.querySelector('span').textContent = busy ? text : 'Entrar'; }
 
-// The admin lands on the admin panel; students on the page they asked for, or their account.
+// Exchange the Supabase session for the server cookie that unlocks the levels, then pick where to go:
+// the page the student asked for, the admin panel for the admin, or the student's account.
 async function destination(session) {
-  if (nextPage) return nextPage;
-  try {
-    const check = await fetch('/api/admin?action=check', { headers: { Authorization: `Bearer ${session.access_token}` } });
-    if (check.ok) return '/admin';
-  } catch { /* not the admin */ }
-  return '/account';
+  const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: session.access_token }) });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message || 'No pudimos abrir tu sesión. Inténtalo de nuevo.');
+  sessionStorage.setItem('elm-session-renewed', String(Date.now()));
+  return nextPage || (result.admin ? '/admin' : '/account');
 }
 
 async function initAuth() {
@@ -29,7 +29,10 @@ async function initAuth() {
     if (!config.url || !config.anonKey || !window.supabase) throw new Error('not configured');
     supabaseClient = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) window.location.replace(await destination(session));
+    if (session) {
+      try { window.location.replace(await destination(session)); }
+      catch (error) { await supabaseClient.auth.signOut().catch(() => {}); setStatus(error.message); }
+    }
   } catch {
     setStatus('El acceso todavía no está configurado. Inténtalo más tarde.');
   }
@@ -55,9 +58,15 @@ loginForm.addEventListener('submit', async (event) => {
   }
   // Every successful login is logged for the admin panel.
   await supabaseClient.from('student_events').insert({ user_id: data.user.id, event_type: 'login' }).then(() => {}, () => {});
-  setStatus('¡Bienvenido/a! Te estamos redirigiendo…', true);
-  const target = await destination(data.session);
-  setTimeout(() => { window.location.href = target; }, 450);
+  try {
+    const target = await destination(data.session);
+    setStatus('¡Bienvenido/a! Te estamos redirigiendo…', true);
+    setTimeout(() => { window.location.href = target; }, 450);
+  } catch (sessionError) {
+    await supabaseClient.auth.signOut().catch(() => {});
+    setBusy(false);
+    setStatus(sessionError.message);
+  }
 });
 
 showPassword.addEventListener('click', () => {

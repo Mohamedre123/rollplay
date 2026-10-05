@@ -62,16 +62,32 @@
       window.elmStudentAuth = client;
       const { data: { user } } = await client.auth.getUser();
       // A saved session that Supabase no longer accepts (expired, account disabled) must not open a level.
-      if (!user && isGated) { await client.auth.signOut().catch(() => {}); toLogin(); return; }
+      if (!user && isGated) { await client.auth.signOut().catch(() => {}); await endServerSession(); toLogin(); return; }
       if (!user) { addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' }); return; }
       addNavLink({ href: '/account', label: 'Mi cuenta', sub: 'Tu progreso y tus niveles', icon: '⌾', className: 'is-account' });
       const { data: { session } } = await client.auth.getSession();
+      if (session) renewServerSession(session);
       if (session && await isAdmin(session)) addNavLink({ href: '/admin', label: 'Admin', sub: 'Alumnos y actividad', icon: '★', className: 'is-admin' });
       watchActivity(user.id);
     } catch {
       addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' });
     }
   }
+
+  // The levels' files are served only with the server cookie (see middleware.js). It lasts six
+  // hours, so renew it at most once an hour while the student keeps using the site.
+  async function renewServerSession(session) {
+    const last = Number(sessionStorage.getItem('elm-session-renewed') || 0);
+    if (Date.now() - last < 3600e3) return;
+    const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: session.access_token }) }).catch(() => null);
+    if (response?.ok) sessionStorage.setItem('elm-session-renewed', String(Date.now()));
+    else if (response && (response.status === 401 || response.status === 403) && isGated) { await client.auth.signOut().catch(() => {}); toLogin(); }
+  }
+  async function endServerSession() {
+    sessionStorage.removeItem('elm-session-renewed');
+    await fetch('/api/session', { method: 'DELETE' }).catch(() => {});
+  }
+  window.elmEndSession = endServerSession;
 
   function watchActivity(userId) {
     const started = (selector, activity) => {
