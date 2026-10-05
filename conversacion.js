@@ -13,6 +13,7 @@ const convPhoto = convStage.querySelector('.conv-photo');
 let spinning = false;
 let current = -1;
 let unseen = [];
+let answerBox = null;
 
 const tiles = topics.map((topic, index) => {
   const tile = document.createElement('button');
@@ -41,6 +42,11 @@ function showTopic(index) {
   convStage.querySelector('.conv-num').textContent = `Tema ${String(index + 1).padStart(2, '0')} · ${topic.short}`;
   convStage.querySelector('h3').textContent = topic.prompt;
   convStage.querySelector('.conv-questions').innerHTML = topic.questions.map((question) => `<li>${question}</li>`).join('');
+  // The student can write a summary of what they said about this topic.
+  if (window.elmAnswerBox) {
+    if (!answerBox) { answerBox = window.elmAnswerBox('Escribe un resumen de lo que has dicho…'); convStage.querySelector('.timer').before(answerBox.element); }
+    answerBox.setItem('conversation', index + 1, `${topic.prompt} ${topic.questions.join(' ')}`);
+  }
   resetTimer();
 }
 
@@ -125,6 +131,8 @@ timerToggle.addEventListener('click', () => {
       timerBox.classList.add('is-done');
       timerToggle.textContent = 'Otra vez';
       timerNote.textContent = '¡Tiempo! Ahora tu compañero te hace una pregunta.';
+      // Speaking for the whole time completes this topic for the score.
+      if (current >= 0) window.elmProgress?.done('conversation', current + 1);
     }
   }, 100);
 });

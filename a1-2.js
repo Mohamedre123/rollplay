@@ -26,6 +26,28 @@ const stageInner = stage.querySelector('.stage-inner');
 const stagePhoto = stage.querySelector('.face-photo img');
 const stageClose = stage.querySelector('#stageClose');
 const stageNext = stage.querySelector('#stageNext');
+const stageAnswer = stage.querySelector('#stageAnswer');
+const answerSheet = stage.querySelector('#answerSheet');
+let answerBox = null;
+
+// The student can write what they would say for the open card; it is saved to their account.
+function openAnswer() {
+  if (!activeCard || !window.elmAnswerBox) return;
+  const item = itemFor(activeCard);
+  if (!answerBox) { answerBox = window.elmAnswerBox(); answerSheet.append(answerBox.element); }
+  answerBox.setItem('a1-2', item.number, `${item.situation} ${item.question}`);
+  answerSheet.querySelector('#sheetTitle').textContent = item.question;
+  answerSheet.hidden = false;
+  stage.classList.add('is-answering');
+  void answerSheet.offsetWidth;
+  answerSheet.classList.add('is-open');
+  answerBox.focus();
+}
+function closeAnswer() {
+  answerSheet.classList.remove('is-open');
+  answerSheet.hidden = true;
+  stage.classList.remove('is-answering');
+}
 const cardsReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const cardEasing = 'cubic-bezier(.22,.8,.24,1)';
 let activeCard = null;
@@ -123,6 +145,7 @@ async function openCard(card) {
   }
   card.querySelector('.pc-front img').src = item.image;
   card.classList.add('is-revealed');
+  window.elmProgress?.done('a1-2', item.number);
   card.setAttribute('aria-label', `Carta ${item.number}: ${item.situation}`);
   updateCount();
   stageClose.focus({ preventScroll: true });
@@ -132,6 +155,7 @@ async function openCard(card) {
 async function closeCard() {
   if (isBusy || stage.hidden) return;
   isBusy = true;
+  closeAnswer();
   stage.classList.remove('is-open');
   if (!cardsReduceMotion) {
     const { x, y, s } = offsetTo(cardRect(activeCard));
@@ -203,13 +227,16 @@ async function reshuffle() {
 randomButton.addEventListener('click', openRandom);
 shuffleButton.addEventListener('click', reshuffle);
 stageClose.addEventListener('click', closeCard);
+stageAnswer.addEventListener('click', openAnswer);
+answerSheet.querySelector('#sheetClose').addEventListener('click', closeAnswer);
 stageNext.addEventListener('click', async () => { await closeCard(); openRandom(); });
 stage.querySelector('.stage-backdrop').addEventListener('click', closeCard);
 document.addEventListener('keydown', (event) => {
   if (stage.hidden || document.documentElement.classList.contains('lightbox-open')) return;
-  if (event.key === 'Escape') closeCard();
+  if (event.key === 'Escape') { if (!answerSheet.hidden) closeAnswer(); else closeCard(); return; }
+  if (!answerSheet.hidden) return;
   if (event.key === 'Tab') {
-    const stops = [stage.querySelector('.face-photo'), stageNext, stageClose];
+    const stops = [stage.querySelector('.face-photo'), stageAnswer, stageNext, stageClose];
     const index = stops.indexOf(document.activeElement);
     event.preventDefault();
     stops[(index + (event.shiftKey ? stops.length - 1 : 1)) % stops.length].focus();

@@ -29,6 +29,19 @@ function showChallenge(challenge) {
   challengeCard.querySelector('.tip').innerHTML = `<span>✦</span> ${challenge.tip}`;
 }
 
+// After a challenge is chosen: it counts towards the score, and the student can write an answer.
+let answerBox = null;
+function attachAnswer(challenge) {
+  const number = challenges.indexOf(challenge) + 1;
+  window.elmProgress?.done('a1-1', number);
+  if (!window.elmAnswerBox) return;
+  if (!answerBox) {
+    answerBox = window.elmAnswerBox();
+    challengeCard.querySelector('.card-content').append(answerBox.element);
+  }
+  answerBox.setItem('a1-1', number, `${challenge.title}: ${challenge.task}`);
+}
+
 function drawChallenge() {
   if (drawButton.disabled) return;
   if (!remaining.length) remaining = [...challenges];
@@ -56,6 +69,7 @@ function drawChallenge() {
     showChallenge(challenge);
     challengeCard.classList.remove('card-swap'); void challengeCard.offsetWidth; challengeCard.classList.add('card-swap', 'is-selected');
     challengeCard.classList.remove('is-rolling');
+    attachAnswer(challenge);
     deckNote.textContent = remaining.length ? `${remaining.length} reto${remaining.length === 1 ? '' : 's'} más en el mazo` : '¡Mazo terminado! El próximo toque empieza de nuevo.';
     setTimeout(() => { drawButton.disabled = false; }, 420);
   }

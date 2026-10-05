@@ -18,7 +18,7 @@
       if (!overlay) return;
       event.preventDefault();
       overlay.classList.add('is-leaving');
-      setTimeout(() => { window.location.href = link.href; }, 560);
+      setTimeout(() => { window.location.href = link.href; }, 340);
     });
   };
 
@@ -56,20 +56,30 @@
   async function init() {
     addStyles();
     try {
-      const response = await fetch(configUrl, { cache: 'no-store' }); const config = await response.json();
+      const response = await fetch(configUrl); const config = await response.json();
       if (!config.url || !config.anonKey) throw new Error('No configuration');
       await loadLibrary(); client = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       window.elmStudentAuth = client;
-      const { data: { user } } = await client.auth.getUser();
-      // A saved session that Supabase no longer accepts (expired, account disabled) must not open a level.
-      if (!user && isGated) { await client.auth.signOut().catch(() => {}); await endServerSession(); toLogin(); return; }
-      if (!user) { addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' }); return; }
-      addNavLink({ href: '/account', label: 'Mi cuenta', sub: 'Tu progreso y tus niveles', icon: '⌾', className: 'is-account' });
+      // The saved session is read from this device, so the menu appears without waiting for the network.
       const { data: { session } } = await client.auth.getSession();
-      if (session) renewServerSession(session);
-      if (session && await isAdmin(session)) addNavLink({ href: '/admin', label: 'Admin', sub: 'Alumnos y actividad', icon: '★', className: 'is-admin' });
-      watchActivity(user.id);
+      if (!session) {
+        resolveUser(null);
+        if (isGated) { await endServerSession(); toLogin(); return; }
+        addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' });
+        return;
+      }
+      addNavLink({ href: '/account', label: 'Mi cuenta', sub: 'Tu progreso y tus niveles', icon: '⌾', className: 'is-account' });
+      watchActivity(session.user.id);
+      resolveUser(session.user.id);
+      renewServerSession(session);
+      isAdmin(session).then((admin) => { if (admin) addNavLink({ href: '/admin', label: 'Admin', sub: 'Alumnos y actividad', icon: '★', className: 'is-admin' }); });
+      // Then confirm with Supabase in the background: an expired or deactivated account must not stay in a level.
+      client.auth.getUser().then(async ({ data: { user } }) => {
+        if (user || !isGated) return;
+        await client.auth.signOut().catch(() => {}); await endServerSession(); toLogin();
+      }, () => {});
     } catch {
+      resolveUser(null);
       addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' });
     }
   }
@@ -126,6 +136,31 @@
       client.from('student_events').insert({ user_id: userId, event_type: status, activity_key: activityKey })
     ]).catch(() => {});
   }
+
+  // Score and answers. Each challenge, card or topic counts once towards the level's score;
+  // when all of them are done, the level is marked as completed.
+  const totals = { 'a1-1': 7, 'a1-2': 15, conversation: 4 };
+  let resolveUser;
+  const userReady = new Promise((resolve) => { resolveUser = resolve; });
+  window.elmProgress = {
+    totals,
+    async done(activityKey, itemKey) {
+      const userId = await userReady;
+      if (!userId || !client) return;
+      await client.from('student_items').upsert({ user_id: userId, activity_key: activityKey, item_key: String(itemKey) }, { onConflict: 'user_id,activity_key,item_key', ignoreDuplicates: true });
+      const { count } = await client.from('student_items').select('item_key', { count: 'exact', head: true }).eq('user_id', userId).eq('activity_key', activityKey);
+      if (count >= totals[activityKey]) record(userId, activityKey, 'completed');
+    },
+    async answer(activityKey, itemKey, prompt, text) {
+      const userId = await userReady;
+      if (!userId || !client) return { ok: false, message: 'Inicia sesión para guardar tu respuesta.' };
+      const { error } = await client.from('student_answers').insert({ user_id: userId, activity_key: activityKey, item_key: String(itemKey), prompt: String(prompt).slice(0, 400), answer: String(text).trim().slice(0, 2000) });
+      if (error) return { ok: false, message: 'No pudimos guardar tu respuesta. Inténtalo de nuevo.' };
+      client.from('student_events').insert({ user_id: userId, event_type: 'answered', activity_key: activityKey }).then(() => {}, () => {});
+      this.done(activityKey, itemKey);
+      return { ok: true };
+    }
+  };
 
   init();
 })();

@@ -1,5 +1,8 @@
 const activityNames = { 'a1-1': 'A1.1', 'a1-2': 'A1.2', conversation: 'Conversación' };
-const eventVerbs = { login: 'ha entrado', started: 'ha empezado', completed: 'ha completado' };
+const eventVerbs = { login: 'ha entrado', started: 'ha empezado', completed: 'ha completado', answered: 'ha respondido en' };
+const totals = { 'a1-1': 7, 'a1-2': 15, conversation: 4 };
+const openStudents = new Set();
+const formatDate = (value) => new Date(value).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const words = ['Sol', 'Luna', 'Mar', 'Flor', 'Plaza', 'Tapas', 'Paella', 'Toledo', 'Sevilla', 'Mundo', 'Viento', 'Cielo'];
 const $ = (selector) => document.querySelector(selector);
 let client;
@@ -46,8 +49,24 @@ function progressChips(student) {
     const item = student.progress.find((entry) => entry.activity_key === key);
     const state = item ? item.status : 'none';
     const title = state === 'completed' ? 'Completado' : state === 'started' ? 'Empezado' : 'Sin empezar';
-    return `<span class="chip is-${state}" title="${label}: ${title}">${label}${state === 'completed' ? ' ✓' : ''}</span>`;
+    const score = (student.scores || {})[key] || 0;
+    return `<span class="chip is-${state}" title="${label}: ${title}">${label} · ${score}/${totals[key]}${state === 'completed' ? ' ✓' : ''}</span>`;
   }).join('');
+}
+
+// Opened with a tap on the student: score per game and every answer they wrote.
+function studentDetail(student) {
+  const scores = Object.entries(activityNames).map(([key, label]) => {
+    const score = (student.scores || {})[key] || 0;
+    return `<div><span>${label}</span><span class="level-score"><span class="score-bar"><i style="width:${Math.min(100, (score / totals[key]) * 100)}%"></i></span><b class="score-text">${score}/${totals[key]}</b></span></div>`;
+  }).join('');
+  const answers = (student.answers || []).map((answer) => `
+    <li>
+      <div class="answer-meta"><span class="answer-game">${activityNames[answer.activity_key] || answer.activity_key}</span><time datetime="${answer.created_at}">${formatDate(answer.created_at)}</time></div>
+      <p class="answer-prompt">${escapeHtml(answer.prompt)}</p>
+      <blockquote>${escapeHtml(answer.answer)}</blockquote>
+    </li>`).join('') || '<li class="answer-empty">Todavía no ha escrito respuestas.</li>';
+  return `<div class="student-detail"><div class="detail-scores">${scores}</div><h4>Respuestas (${(student.answers || []).length})</h4><ol class="answer-list">${answers}</ol></div>`;
 }
 
 function renderStudents() {
@@ -55,7 +74,7 @@ function renderStudents() {
   const list = data.students.filter((student) => !query || `${student.name} ${student.email}`.toLowerCase().includes(query));
   $('#studentsNote').textContent = data.students.length ? '' : 'Todavía no hay alumnos. Añade el primero con el formulario.';
   $('#studentList').innerHTML = list.map((student) => `
-    <article class="student-row${student.disabled ? ' is-disabled' : ''}" data-id="${student.id}">
+    <article class="student-row${student.disabled ? ' is-disabled' : ''}${openStudents.has(student.id) ? ' is-open' : ''}" data-id="${student.id}" tabindex="0" aria-expanded="${openStudents.has(student.id)}">
       <span class="student-avatar" aria-hidden="true">${escapeHtml((student.name || student.email).trim().charAt(0).toUpperCase())}</span>
       <div class="student-info">
         <strong>${escapeHtml(student.name || 'Sin nombre')}${student.disabled ? ' <em class="badge">Desactivado</em>' : ''}</strong>
@@ -68,6 +87,7 @@ function renderStudents() {
         <button class="mini-button" type="button" data-action="disable">${student.disabled ? 'Activar' : 'Desactivar'}</button>
         <button class="mini-button is-danger" type="button" data-action="delete">Eliminar</button>
       </div>
+      ${openStudents.has(student.id) ? studentDetail(student) : ''}
     </article>`).join('') || (data.students.length ? '<p class="admin-note">Ningún alumno coincide con la búsqueda.</p>' : '');
 }
 
@@ -75,7 +95,7 @@ function renderFeed() {
   const names = new Map(data.students.map((student) => [student.id, student.name || student.email]));
   $('#activityFeed').innerHTML = data.events.slice(0, 80).map((event) => `
     <li class="feed-${event.event_type}">
-      <span class="feed-icon" aria-hidden="true">${event.event_type === 'login' ? '→' : event.event_type === 'completed' ? '✓' : '▶'}</span>
+      <span class="feed-icon" aria-hidden="true">${event.event_type === 'login' ? '→' : event.event_type === 'completed' ? '✓' : event.event_type === 'answered' ? '✎' : '▶'}</span>
       <span><strong>${escapeHtml(names.get(event.user_id) || 'Alumno')}</strong> ${eventVerbs[event.event_type] || event.event_type}${event.activity_key ? ` <b>${activityNames[event.activity_key] || event.activity_key}</b>` : ''}</span>
       <time datetime="${event.created_at}">${timeAgo(event.created_at)}</time>
     </li>`).join('') || '<li class="feed-empty">Aquí verás cada entrada y cada juego de tus alumnos.</li>';
@@ -164,9 +184,19 @@ $('#addForm').addEventListener('submit', async (event) => {
 
 $('#studentList').addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');
-  if (!button) return;
+  if (!button) {
+    // Tapping the student (outside the buttons and the opened details) shows or hides their work.
+    const row = event.target.closest('.student-row');
+    if (!row || event.target.closest('.student-detail')) return;
+    if (openStudents.has(row.dataset.id)) openStudents.delete(row.dataset.id); else openStudents.add(row.dataset.id);
+    renderStudents();
+    return;
+  }
   const student = data.students.find((item) => item.id === button.closest('.student-row').dataset.id);
   if (student) openDialog(student, button.dataset.action);
+});
+$('#studentList').addEventListener('keydown', (event) => {
+  if ((event.key === 'Enter' || event.key === ' ') && event.target.classList.contains('student-row')) { event.preventDefault(); event.target.click(); }
 });
 $('#generatePassword').addEventListener('click', () => { $('#newPassword').value = newPassword(); });
 $('#dialogGenerate').addEventListener('click', () => { $('#dialogPassword').value = newPassword(); });
@@ -180,7 +210,7 @@ $('#copyCredentials').addEventListener('click', async () => {
 
 async function start() {
   try {
-    const config = await fetch('/api/auth-config', { cache: 'no-store' }).then((response) => response.json());
+    const config = await fetch('/api/auth-config').then((response) => response.json());
     if (!config.url || !config.anonKey || !window.supabase) throw new Error('El acceso todavía no está configurado.');
     client = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
     await api('GET', 'check');

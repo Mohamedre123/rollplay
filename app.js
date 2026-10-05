@@ -99,11 +99,22 @@ if (!reduceMotion) {
     const href = link.getAttribute('href');
     const isPageLink = href && !href.startsWith('#') && !link.target && !link.hasAttribute('download');
     if (!isPageLink) return;
+    // Start downloading the next page as soon as the pointer or finger lands on the link,
+    // so it is usually ready by the time the transition ends.
+    const prefetch = () => {
+      if (document.querySelector(`link[rel="prefetch"][href="${href}"]`)) return;
+      const hint = document.createElement('link');
+      hint.rel = 'prefetch';
+      hint.href = href;
+      document.head.append(hint);
+    };
+    link.addEventListener('pointerenter', prefetch, { once: true });
+    link.addEventListener('touchstart', prefetch, { once: true, passive: true });
     link.addEventListener('click', (event) => {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       transition.classList.add('is-leaving');
-      setTimeout(() => { window.location.href = href; }, 560);
+      setTimeout(() => { window.location.href = href; }, 340);
     });
   });
 }
@@ -208,3 +219,35 @@ if (!reduceMotion) {
     if (event.key === 'Tab') { event.preventDefault(); lbClose.focus(); }
   });
 }
+
+// Answer box shared by the games: the student writes what they would say and it is saved to
+// their account (student.js → window.elmProgress), where they and the admin can read it later.
+window.elmAnswerBox = function createAnswerBox(placeholder = 'Escribe aquí lo que dirías en español…') {
+  const id = `answer-${Math.random().toString(36).slice(2, 8)}`;
+  const form = document.createElement('form');
+  form.className = 'answer-box';
+  form.noValidate = true;
+  form.innerHTML = `<label for="${id}">Tu respuesta <small>· se guarda en tu cuenta</small></label><textarea id="${id}" rows="3" maxlength="2000" placeholder="${placeholder}"></textarea><div class="answer-row"><span class="answer-status" role="status"></span><button class="button" type="submit">Guardar <span>✓</span></button></div>`;
+  const textarea = form.querySelector('textarea');
+  const status = form.querySelector('.answer-status');
+  const button = form.querySelector('button');
+  let item = null;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const text = textarea.value.trim();
+    if (!item) return;
+    if (!text) { status.textContent = 'Escribe tu respuesta primero.'; textarea.focus(); return; }
+    if (!window.elmProgress) { status.textContent = 'Inicia sesión para guardar tu respuesta.'; return; }
+    button.disabled = true;
+    status.textContent = 'Guardando…';
+    const result = await window.elmProgress.answer(item.activity, item.key, item.prompt, text);
+    button.disabled = false;
+    status.textContent = result.ok ? '✓ Guardada. La verás en «Mi cuenta».' : result.message;
+    if (result.ok) { textarea.value = ''; form.classList.add('is-saved'); setTimeout(() => form.classList.remove('is-saved'), 900); }
+  });
+  return {
+    element: form,
+    setItem(activity, key, prompt) { item = { activity, key: String(key), prompt }; textarea.value = ''; status.textContent = ''; },
+    focus() { textarea.focus({ preventScroll: true }); }
+  };
+};

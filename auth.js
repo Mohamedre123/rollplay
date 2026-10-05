@@ -24,7 +24,7 @@ async function destination(session) {
 
 async function initAuth() {
   try {
-    const response = await fetch('/api/auth-config', { cache: 'no-store' });
+    const response = await fetch('/api/auth-config');
     const config = await response.json();
     if (!config.url || !config.anonKey || !window.supabase) throw new Error('not configured');
     supabaseClient = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -88,6 +88,6 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     transition.classList.add('is-leaving');
-    setTimeout(() => { window.location.href = '/'; }, 560);
+    setTimeout(() => { window.location.href = '/'; }, 340);
   }));
 }

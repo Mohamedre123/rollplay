@@ -71,3 +71,42 @@ create trigger on_auth_student_created
 insert into public.student_profiles (id, email, full_name)
 select id, lower(email), coalesce(raw_user_meta_data ->> 'full_name', '') from auth.users
 on conflict (id) do nothing;
+
+-- ============================================================
+-- Score: every challenge, card or topic a student has done (one row each)
+-- ============================================================
+create table if not exists public.student_items (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  activity_key text not null check (activity_key in ('a1-1', 'a1-2', 'conversation')),
+  item_key text not null,
+  done_at timestamptz not null default now(),
+  primary key (user_id, activity_key, item_key)
+);
+alter table public.student_items enable row level security;
+drop policy if exists "Students add own items" on public.student_items;
+create policy "Students add own items" on public.student_items for insert with check (auth.uid() = user_id);
+drop policy if exists "Students read own items" on public.student_items;
+create policy "Students read own items" on public.student_items for select using (auth.uid() = user_id);
+
+-- ============================================================
+-- Answers the students write for each challenge, card or topic
+-- ============================================================
+create table if not exists public.student_answers (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  activity_key text not null check (activity_key in ('a1-1', 'a1-2', 'conversation')),
+  item_key text not null,
+  prompt text not null check (char_length(prompt) <= 400),
+  answer text not null check (char_length(answer) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+create index if not exists student_answers_user on public.student_answers (user_id, created_at desc);
+alter table public.student_answers enable row level security;
+drop policy if exists "Students add own answers" on public.student_answers;
+create policy "Students add own answers" on public.student_answers for insert with check (auth.uid() = user_id);
+drop policy if exists "Students read own answers" on public.student_answers;
+create policy "Students read own answers" on public.student_answers for select using (auth.uid() = user_id);
+
+-- Answers also appear in the admin activity feed.
+alter table public.student_events drop constraint if exists student_events_event_type_check;
+alter table public.student_events add constraint student_events_event_type_check check (event_type in ('login', 'started', 'completed', 'answered'));

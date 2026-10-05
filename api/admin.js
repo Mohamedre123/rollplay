@@ -49,9 +49,11 @@ async function overview(url, service) {
     users.push(...(batch.users || []));
     if ((batch.users || []).length < 200) break;
   }
-  const [progress, events] = await Promise.all([
+  const [progress, events, items, answers] = await Promise.all([
     getJson(`${url}/rest/v1/student_progress?select=user_id,activity_key,status,last_played_at,completed_at`, service),
-    getJson(`${url}/rest/v1/student_events?select=id,user_id,event_type,activity_key,created_at&order=created_at.desc&limit=200`, service)
+    getJson(`${url}/rest/v1/student_events?select=id,user_id,event_type,activity_key,created_at&order=created_at.desc&limit=200`, service),
+    getJson(`${url}/rest/v1/student_items?select=user_id,activity_key,item_key`, service),
+    getJson(`${url}/rest/v1/student_answers?select=id,user_id,activity_key,item_key,prompt,answer,created_at&order=created_at.desc&limit=2000`, service)
   ]);
   const now = Date.now();
   const students = users
@@ -63,7 +65,9 @@ async function overview(url, service) {
       createdAt: user.created_at,
       lastSignInAt: user.last_sign_in_at || null,
       disabled: Boolean(user.banned_until && Date.parse(user.banned_until) > now),
-      progress: progress.filter((item) => item.user_id === user.id)
+      progress: progress.filter((item) => item.user_id === user.id),
+      scores: items.filter((item) => item.user_id === user.id).reduce((sum, item) => ({ ...sum, [item.activity_key]: (sum[item.activity_key] || 0) + 1 }), {}),
+      answers: answers.filter((answer) => answer.user_id === user.id)
     }))
     .sort((a, b) => (Date.parse(b.lastSignInAt || b.createdAt) || 0) - (Date.parse(a.lastSignInAt || a.createdAt) || 0));
   const studentIds = new Set(students.map((student) => student.id));
