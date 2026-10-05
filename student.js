@@ -1,6 +1,8 @@
 (() => {
   const configUrl = '/api/auth-config';
-  const key = 'elm-supabase-ready';
+  const isGated = document.documentElement.hasAttribute('data-gate');
+  const here = window.location.pathname.replace(/\/$/, '') || '/';
+  const toLogin = () => window.location.replace(`/auth?next=${encodeURIComponent(window.location.pathname)}`);
   let client;
 
   const loadLibrary = () => new Promise((resolve, reject) => {
@@ -19,24 +21,38 @@
       setTimeout(() => { window.location.href = link.href; }, 560);
     });
   };
-  const injectAccountLink = (user) => {
-    const destination = user ? '/account' : '/auth';
-    const label = user ? 'Mi cuenta' : 'Entrar';
+
+  // "Entrar" / "Mi cuenta" (and "Admin" for the admin) in the header and in the phone menu.
+  const addNavLink = ({ href, label, sub, icon, className }) => {
     const nav = document.querySelector('.site-nav');
-    if (nav && !nav.querySelector('.student-account-link')) {
+    if (nav && !nav.querySelector(`a[href="${href}"]`)) {
       const link = document.createElement('a');
-      link.className = 'student-account-link'; link.href = destination;
-      link.innerHTML = user ? '<span class="student-dot"></span>Mi cuenta' : 'Entrar';
+      link.className = `student-account-link ${className || ''}`; link.href = href;
+      link.innerHTML = className === 'is-account' ? `<span class="student-dot"></span>${label}` : label;
+      if (here === href) link.setAttribute('aria-current', 'page');
       applyPageTransition(link); nav.append(link);
     }
     const sideLinks = document.querySelector('#sideMenu .side-links');
-    if (sideLinks && !sideLinks.querySelector('.student-menu-link')) {
+    if (sideLinks && !sideLinks.querySelector(`a[href="${href}"]`)) {
       const link = document.createElement('a');
-      link.className = 'student-menu-link'; link.href = destination; link.style.setProperty('--k', '4');
-      link.innerHTML = `<span class="menu-num">${user ? '⌾' : '→'}</span><span class="menu-label"><strong>${label}</strong><small>${user ? 'Tu progreso y actividades' : 'Accede con tu correo'}</small></span><b aria-hidden="true">→</b>`;
+      link.className = 'student-menu-link'; link.href = href; link.style.setProperty('--k', String(sideLinks.children.length));
+      if (here === href) link.setAttribute('aria-current', 'page');
+      link.innerHTML = `<span class="menu-num">${icon}</span><span class="menu-label"><strong>${label}</strong><small>${sub}</small></span><b aria-hidden="true">→</b>`;
       applyPageTransition(link); sideLinks.append(link);
     }
   };
+
+  async function isAdmin(session) {
+    const cacheKey = `elm-admin-${session.user.id}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) return cached === '1';
+    try {
+      const check = await fetch('/api/admin?action=check', { headers: { Authorization: `Bearer ${session.access_token}` } });
+      sessionStorage.setItem(cacheKey, check.ok ? '1' : '0');
+      return check.ok;
+    } catch { return false; }
+  }
+
   async function init() {
     addStyles();
     try {
@@ -44,31 +60,56 @@
       if (!config.url || !config.anonKey) throw new Error('No configuration');
       await loadLibrary(); client = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       window.elmStudentAuth = client;
-      sessionStorage.setItem(key, '1');
-      const { data: { user } } = await client.auth.getUser(); injectAccountLink(user);
-      if (user) watchActivity(user.id);
-    } catch { injectAccountLink(null); }
-  }
-  function watchActivity(userId) {
-    const path = window.location.pathname.replace(/\/$/, '');
-    const register = (selector, activity, completed = false) => {
-      const element = document.querySelector(selector); if (!element) return;
-      element.addEventListener('click', () => saveProgress(userId, activity, completed ? 'completed' : 'started'), { once: true });
-    };
-    if (path === '/a1-1' || path.endsWith('a1-1.html')) register('#drawButton', 'a1-1', false);
-    if (path === '/a1-2' || path.endsWith('a1-2.html')) register('.play-card, #randomCard', 'a1-2', false);
-    if (path === '/conversacion' || path.endsWith('conversacion.html')) {
-      register('#spinTopic', 'conversation', false);
-      const timer = document.querySelector('#timer');
-      if (timer) new MutationObserver(() => { if (timer.classList.contains('is-done')) saveProgress(userId, 'conversation', 'completed'); }).observe(timer, { attributes: true, attributeFilter: ['class'] });
+      const { data: { user } } = await client.auth.getUser();
+      // A saved session that Supabase no longer accepts (expired, account disabled) must not open a level.
+      if (!user && isGated) { await client.auth.signOut().catch(() => {}); toLogin(); return; }
+      if (!user) { addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' }); return; }
+      addNavLink({ href: '/account', label: 'Mi cuenta', sub: 'Tu progreso y tus niveles', icon: '⌾', className: 'is-account' });
+      const { data: { session } } = await client.auth.getSession();
+      if (session && await isAdmin(session)) addNavLink({ href: '/admin', label: 'Admin', sub: 'Alumnos y actividad', icon: '★', className: 'is-admin' });
+      watchActivity(user.id);
+    } catch {
+      addNavLink({ href: '/auth', label: 'Entrar', sub: 'Accede con tu correo y contraseña', icon: '→' });
     }
   }
-  async function saveProgress(userId, activityKey, status) {
-    if (!client) return;
-    const now = new Date().toISOString();
-    const record = { user_id: userId, activity_key: activityKey, status, last_played_at: now };
-    if (status === 'completed') record.completed_at = now;
-    await client.from('student_progress').upsert(record, { onConflict: 'user_id,activity_key' });
+
+  function watchActivity(userId) {
+    const started = (selector, activity) => {
+      document.querySelectorAll(selector).forEach((element) => element.addEventListener('click', () => record(userId, activity, 'started'), { once: true }));
+    };
+    // Calls back once, the first time `test` is true after the element's text or classes change.
+    const whenDone = (selector, test, activity) => {
+      const element = document.querySelector(selector); if (!element) return;
+      const observer = new MutationObserver(() => { if (test(element)) { observer.disconnect(); record(userId, activity, 'completed'); } });
+      observer.observe(element, { attributes: true, childList: true, characterData: true, subtree: true });
+    };
+    if (here === '/a1-1') {
+      started('#drawButton', 'a1-1');
+      whenDone('#deckNote', (note) => /terminado/i.test(note.textContent), 'a1-1');
+    }
+    if (here === '/a1-2') {
+      started('.play-card, #randomCard', 'a1-2');
+      whenDone('#cardsCount', (count) => /todas las cartas/i.test(count.textContent), 'a1-2');
+    }
+    if (here === '/conversacion') {
+      started('#spinTopic, .conv-tile', 'conversation');
+      whenDone('#timer', (timer) => timer.classList.contains('is-done'), 'conversation');
+    }
   }
+
+  const startedOnce = new Set();
+  async function record(userId, activityKey, status) {
+    if (!client) return;
+    if (status === 'started') { if (startedOnce.has(activityKey)) return; startedOnce.add(activityKey); }
+    const now = new Date().toISOString();
+    // "started" leaves an existing status alone, so a finished level never goes back to "started".
+    const row = { user_id: userId, activity_key: activityKey, last_played_at: now };
+    if (status === 'completed') Object.assign(row, { status: 'completed', completed_at: now });
+    await Promise.all([
+      client.from('student_progress').upsert(row, { onConflict: 'user_id,activity_key' }),
+      client.from('student_events').insert({ user_id: userId, event_type: status, activity_key: activityKey })
+    ]).catch(() => {});
+  }
+
   init();
 })();

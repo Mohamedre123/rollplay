@@ -1,67 +1,59 @@
-# Passwordless login setup
+# Student accounts and admin panel
 
-This project adds a separate `auth.html` page. It does not alter the learning pages.
+Students log in with an **email and password created by the admin**. There is no public sign-up,
+no email codes and no emails are sent, so nothing can land in spam.
 
-## Vercel environment variables
+- `/auth` — login (email + password).
+- `/account` — the student's page: progress and shortcuts to every level.
+- `/admin` — admin only: create students, change passwords, deactivate or delete accounts,
+  and watch progress and every login/game in real time.
+- `/a1-1`, `/a1-2`, `/conversacion`, `/account`, `/admin` require a logged-in account (`gate.js` + `student.js`).
 
-Add these in Vercel → Project → Settings → Environment Variables for **Production**, **Preview**, and **Development**:
+## 1. Vercel environment variables
 
-- `SUPABASE_URL`: Project URL from Supabase → Project Settings → API.
-- `SUPABASE_ANON_KEY`: Publishable/anon key from the same screen. This is intentionally returned to the browser; it is safe to expose when Row Level Security is enabled.
-- `SUPABASE_SERVICE_ROLE_KEY` (optional, server only): the `service_role` / secret key. It is read only by `api/auth-request.js` on Vercel's server to tell "this email is not registered" apart from "already registered". Without it, login still works; students just get Supabase's generic messages.
+Vercel → Project → Settings → Environment Variables (Production, Preview and Development), then **Redeploy**:
 
-Redeploy after adding them. The service-role key must never be placed in JavaScript, HTML, or any NEXT_PUBLIC_* variable; a Vercel environment variable read by an `api/` function is the right place for it.
+| Name | Value |
+| --- | --- |
+| `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
+| `SUPABASE_ANON_KEY` | the `anon` / publishable key (public, safe in the browser) |
+| `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` / secret key — **server only**, read by `api/admin.js` |
+| `ADMIN_EMAILS` | optional, comma-separated. Defaults to `ayyaezzatt@gmail.com` |
 
-## Supabase configuration
+The service-role key is only used by the `api/` functions on Vercel's server. Never put it in an HTML/JS file.
 
-1. Create a project at https://supabase.com/dashboard.
-2. Go to Authentication → Providers → Email. Enable Email; do not enable passwords in this UI.
-3. Go to Authentication → URL Configuration. Set Site URL to `https://YOUR-VERCEL-DOMAIN` and add `https://YOUR-VERCEL-DOMAIN/**` plus your production custom domain to Redirect URLs.
-4. Go to Authentication → Email Templates → Magic Link. Replace the body with a simple code template that uses `{{ .Token }}` (not `{{ .ConfirmationURL }}`). Example subject: `Your El Mundo Hispano verification code`.
-5. Keep the OTP length at six digits (the UI validates six digits).
+## 2. Supabase settings
 
-## Production email delivery (Resend + your domain)
+1. **SQL**: SQL Editor → New query → paste all of `supabase/student_progress.sql` → Run. Safe to run again.
+2. **Turn off public sign-up**: Authentication → Sign In / Providers → turn **off** "Allow new users to sign up".
+   Accounts are then created only from `/admin`.
+3. **Email provider**: keep Email enabled (it is what allows email + password logins).
+   "Confirm email" does not matter: accounts created from `/admin` are already confirmed.
+4. **Custom SMTP / Resend / email templates** are no longer used and can stay as they are.
 
-Supabase's default sender is only for testing and rate limited. Use custom SMTP for real students.
+## 3. Create the admin account (once)
 
-1. Create a Resend account at https://resend.com and open Domains → Add Domain.
-2. Prefer a dedicated authentication subdomain, for example `auth.yourdomain.com` with sender `no-reply@auth.yourdomain.com`.
-3. Add **exactly** the SPF and DKIM DNS records displayed by Resend in the DNS provider that hosts your domain (Cloudflare, for example), then verify the domain in Resend. Add a DMARC record for the sending domain as recommended by your DNS/email provider.
-4. In Resend → API Keys, create an SMTP key. Copy its SMTP host, port, username, and password.
-5. In Supabase → Authentication → Settings → SMTP, enable Custom SMTP and enter the Resend settings, sender name `El Mundo Hispano`, and From address `no-reply@auth.yourdomain.com`.
-6. Disable click/open tracking for authentication messages; use a short code-only email with no marketing links.
-7. In Supabase → Authentication → Rate Limits, select a safe OTP send limit for your expected number of students.
+Supabase → Authentication → Users → **Add user** → **Create new user**:
+email `ayyaezzatt@gmail.com`, a strong password, tick **Auto Confirm User**.
+Then log in at `/auth`: the admin lands on `/admin`.
 
-Correct SPF, DKIM, DMARC, a verified sending domain, a dedicated auth subdomain, and a simple OTP-only template substantially improve Gmail inbox placement. No provider can truthfully guarantee every message will bypass Spam, because Gmail makes the final placement decision.
-## Student dashboard and progress
+## 4. Adding students
 
-1. In Supabase → SQL Editor → New query, paste and run the whole content of `supabase/student_progress.sql`.
-2. The site records the first interaction in A1.1/A1.2 as **started**. Completing the timer in Conversación records it as **completed**. The student sees this in `/account`.
-3. The shared account control is injected by `student.js`; the only change made to Claude's pages is loading this one connector file after their existing scripts.
+On `/admin` → **Añadir alumno**: name, email and a password (or **Generar**). The panel shows a
+ready-to-send message with the web address, email and password — **Copiar datos** and send it to the student.
+Use **Contraseña** to set a new password if a student forgets it, **Desactivar** to block access
+without losing progress, and **Eliminar** to remove the account and its progress.
 
-## Exact Resend SMTP values
+## What the admin panel records
 
-In Supabase → Authentication → Settings → SMTP use:
+- every successful login,
+- the first game started per visit in A1.1, A1.2 and Conversación,
+- completions: A1.1 when the whole deck has been drawn, A1.2 when all 15 cards are turned,
+  Conversación when the speaking timer reaches zero.
 
-- Host: `smtp.resend.com`
-- Port: `587` (STARTTLS)
-- Username: `resend`
-- Password: the Resend API key you created
-- Sender email: `no-reply@auth.yourdomain.com`
-- Sender name: `El Mundo Hispano`
+## Note on page protection
 
-Do not put the Resend API key in Vercel or any browser file. It lives only inside Supabase's SMTP configuration. **There are no Resend variables to add in Vercel** for this SMTP-based setup.
-
-## Suggested OTP email template
-
-In Supabase → Authentication → Email Templates → Magic Link, use a subject like `Código de acceso · El Mundo Hispano` and a body that prominently contains `{{ .Token }}`. The login screen verifies this exact code and does not use a magic-link click.
-
-## Emails Supabase sends
-
-- New students get the **Confirm signup** template; returning students get the **Magic Link** template. Put `{{ .Token }}` in **both**.
-- Authentication → Providers → Email → **Email OTP Length** must be **6** (the login screen expects 6 digits).
-- Without custom SMTP, Supabase's built-in sender only delivers to members of your Supabase team and only a few emails per hour. Real students will not receive codes until custom SMTP (Resend) is configured.
-
-## Troubleshooting
-
-If the account check is skipped, Vercel → Project → Logs shows `auth-request: account check skipped (...)` with the reason: `student_profiles_table_missing` (run the SQL file), `missing_service_role_key` or `service_role_key_rejected` (check the Vercel variable).
+Levels are hidden from anyone who is not logged in, and an invalid or deactivated session is sent
+back to `/auth`. The game files themselves are still static files on Vercel, so a technical user
+who knows their addresses could download them; accounts, progress and the admin data are fully
+protected by Supabase and the server.

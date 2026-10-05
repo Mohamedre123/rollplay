@@ -1,19 +1,48 @@
 const accountMessage = document.querySelector('#accountMessage');
-const showAccountMessage = (text) => accountMessage.textContent = text;
+const ringLength = 2 * Math.PI * 52;
+const stateLabels = { started: 'En curso', completed: 'Completado ✓' };
+
+async function accountClient() {
+  const config = await fetch('/api/auth-config', { cache: 'no-store' }).then((response) => response.json());
+  if (!config.url || !config.anonKey || !window.supabase) throw new Error('missing config');
+  return window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+}
+
 async function loadAccount() {
+  const ring = document.querySelector('#accountRing');
+  ring.style.strokeDasharray = ringLength;
+  ring.style.strokeDashoffset = ringLength;
   try {
-    const response = await fetch('/api/auth-config', { cache: 'no-store' }); const config = await response.json();
-    if (!config.url || !config.anonKey || !window.supabase) throw new Error('missing config');
-    const client = window.supabase.createClient(config.url, config.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    const client = await accountClient();
     const { data: { user } } = await client.auth.getUser();
-    if (!user) { window.location.replace('/auth'); return; }
+    if (!user) { window.location.replace('/auth?next=/account'); return; }
     document.querySelector('#studentName').textContent = user.user_metadata?.full_name || user.email.split('@')[0];
     document.querySelector('#studentEmail').textContent = user.email;
-    const { data: progress, error } = await client.from('student_progress').select('activity_key,status,last_played_at,completed_at').eq('user_id', user.id);
-    if (error) { showAccountMessage('فعّل جدول الإنجازات من ملف AUTH_SETUP.md ليظهر تقدم الطالب.'); return; }
-    const entries = progress || []; document.querySelector('#progressNumber').textContent = entries.length;
-    entries.forEach((item) => { const card = document.querySelector(`[data-key="${item.activity_key}"]`); if (!card) return; card.classList.add(item.status === 'completed' ? 'is-completed' : 'is-started'); card.querySelector('.activity-state').textContent = item.status === 'completed' ? '✓ مكتمل' : 'قمت بالتجربة'; });
-  } catch { showAccountMessage('تعذر فتح الحساب الآن. تأكد من إعداد Supabase في Vercel.'); }
+
+    const { data: { session } } = await client.auth.getSession();
+    fetch('/api/admin?action=check', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then((check) => { if (check.ok) document.querySelector('#adminLink').hidden = false; }, () => {});
+
+    document.querySelector('#signOut').addEventListener('click', async () => {
+      await client.auth.signOut();
+      sessionStorage.clear();
+      window.location.href = '/auth';
+    });
+
+    const { data: progress, error } = await client.from('student_progress').select('activity_key,status').eq('user_id', user.id);
+    if (error) { accountMessage.textContent = 'Todavía no podemos mostrar tu progreso.'; return; }
+    let completed = 0;
+    (progress || []).forEach((item) => {
+      const card = document.querySelector(`[data-key="${item.activity_key}"]`);
+      if (!card) return;
+      card.classList.add(`is-${item.status}`);
+      card.querySelector('.level-state').textContent = stateLabels[item.status] || 'Sin empezar';
+      if (item.status === 'completed') completed += 1;
+    });
+    document.querySelector('#progressNumber').textContent = completed;
+    requestAnimationFrame(() => { ring.style.strokeDashoffset = ringLength * (1 - completed / 3); });
+  } catch {
+    accountMessage.textContent = 'No pudimos abrir tu cuenta ahora. Inténtalo de nuevo.';
+  }
 }
-document.querySelector('#signOut').addEventListener('click', async () => { const response = await fetch('/api/auth-config', { cache: 'no-store' }); const config = await response.json(); if (config.url && config.anonKey && window.supabase) { const client = window.supabase.createClient(config.url, config.anonKey); await client.auth.signOut(); } window.location.href = '/auth'; });
 loadAccount();

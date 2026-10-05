@@ -58,7 +58,7 @@ if (siteNav && menuToggle) {
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (!reduceMotion) {
   document.body.classList.add('has-motion');
-  const revealItems = document.querySelectorAll('.hero-content, .section-heading, .deck-area, .challenge-card, .steps > div, .cards-toolbar, .conv-tiles, .conv-stage, .footer-apps');
+  const revealItems = document.querySelectorAll('.hero-content, .section-heading, .deck-area, .challenge-card, .steps > div, .cards-toolbar, .conv-tiles, .conv-stage, .footer-apps, .game-feature, .feature-grid, .home-cta, .level-grid');
   revealItems.forEach((item, index) => {
     item.classList.add('reveal');
     item.style.setProperty('--reveal-delay', `${Math.min(index * 70, 280)}ms`);
