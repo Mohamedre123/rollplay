@@ -691,3 +691,13 @@ html.menu-open .pointer-orb { opacity:0; }
 @media (max-width:760px) { .detail-scores { grid-template-columns:1fr; } .answers-panel { margin-top:40px; } }
 .card-stage.is-answering .stage-controls { opacity:0; pointer-events:none; }
 .answer-sheet { position:fixed; bottom:max(12px, env(safe-area-inset-bottom)); }
+
+/* Recommended apps: six icons — one row on desktop, three per row on tablets and phones */
+.app-list { grid-template-columns:repeat(6,minmax(0,140px)); }
+.app-list a span { text-align:center; text-wrap:balance; }
+@media (max-width:900px) { .app-list { grid-template-columns:repeat(3,minmax(0,160px)); row-gap:6px; } }
+@media (max-width:680px) {
+  .app-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px 4px; }
+  .app-list a { padding:12px 4px; font-size:.72rem; }
+}
+@media (max-width:340px) { .app-list a { font-size:.66rem; } .site-footer .app-list img { width:48px; height:48px; } }
